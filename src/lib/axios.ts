@@ -2,7 +2,8 @@ import axios from 'axios';
 import { getErrorMessage } from './errorUtils';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000',
+  // baseURL: 'http://localhost:5000',
+  baseURL: 'https://hulumoya2.zapto.org',
   headers: {
     'Content-Type': 'application/json',
   },
