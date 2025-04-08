@@ -6,13 +6,11 @@ import {
   Star,
   MessageSquare,
   ThumbsUp,
-  Minus,
-  ThumbsDown,
+
   Flag,
   Archive,
   Download,
-  Filter,
-  Calendar,
+
   TrendingUp
 } from 'lucide-react';
 import api, { getErrorMessage } from '../../lib/axios';

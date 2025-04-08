@@ -3,7 +3,7 @@ import { getErrorMessage } from './errorUtils';
 
 const api = axios.create({
   // baseURL: 'http://localhost:5000',
-  baseURL: 'https://hulumoya2.zapto.org',
+  baseURL: 'https://hulumoya.zapto.org',
   headers: {
     'Content-Type': 'application/json',
   },
