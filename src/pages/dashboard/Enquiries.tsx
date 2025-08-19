@@ -11,7 +11,7 @@ export default function Enquiries() {
     queryKey: ['enquiries', selectedBusinessId],
     queryFn: async () => {
       const response = await api.get(`/businesses/enquiries/business/${selectedBusinessId}`);
-      return response.data as Enquiry[];
+      return response.data.content as Enquiry[];
     },
   });
 
