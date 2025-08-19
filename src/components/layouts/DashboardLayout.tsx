@@ -7,30 +7,21 @@ import {
   MessageSquare, 
   User,
   LogOut,
-  Star,
-  Users,
-  FileText,
-  FileSpreadsheet
+  Star
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
+import type { LucideIcon } from 'lucide-react';
 
-const navigation = [
+type NavChild = { name: string; path: string; icon: LucideIcon };
+type NavItem = { name: string; path: string; icon: LucideIcon; children?: NavChild[] };
+
+const navigation: NavItem[] = [
   { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
   { name: 'Services', path: '/dashboard/services', icon: Package },
   { name: 'Orders', path: '/dashboard/orders', icon: ShoppingCart },
   { name: 'Promotions', path: '/dashboard/promotions', icon: Megaphone },
   { name: 'Reviews', path: '/dashboard/reviews', icon: Star },
   { name: 'Enquiries', path: '/dashboard/enquiries', icon: MessageSquare },
-  {
-    name: 'B2B',
-    path: '/dashboard/b2b',
-    icon: Users,
-    children: [
-      { name: 'Partners', path: '/dashboard/b2b/partners', icon: Users },
-      { name: 'Contracts', path: '/dashboard/b2b/contracts', icon: FileText },
-      { name: 'Quotes', path: '/dashboard/b2b/quotes', icon: FileSpreadsheet },
-    ],
-  },
   { name: 'Profile', path: '/dashboard/profile', icon: User },
 ];
 
