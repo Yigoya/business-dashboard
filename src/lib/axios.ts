@@ -1,9 +1,12 @@
 import axios from 'axios';
 import { getErrorMessage } from './errorUtils';
 
+export const API_URL = "https://hulumoya.zapto.org" 
+export const API_URL_FILE = `${API_URL}/uploads/`
+
 const api = axios.create({
   // baseURL: 'http://localhost:5000',
-  baseURL: 'https://hulumoya.zapto.org', 
+  baseURL: API_URL, 
   headers: {
     'Content-Type': 'application/json',
   },

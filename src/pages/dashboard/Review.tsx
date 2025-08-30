@@ -6,18 +6,44 @@ import {
   Star,
   MessageSquare,
   ThumbsUp,
-
   Flag,
   Archive,
   Download,
-
-  TrendingUp
+  TrendingUp,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import api, { getErrorMessage } from '../../lib/axios';
 import { Review, ReviewStatus, ReviewMetrics } from '../../types';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+// Add type augmentation for jsPDF with autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
+
+interface PaginatedResponse {
+  content: Review[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
+}
+
+interface FilterOptions {
+  dateRange: 'all' | 'week' | 'month' | 'year';
+  rating: number | 'all';
+  status: ReviewStatus | 'all';
+}
 
 // Add type augmentation for jsPDF with autoTable
 declare module 'jspdf' {
@@ -41,20 +67,29 @@ export default function Reviews() {
   const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [response, setResponse] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
+  const pageSize = 10;
   
   const queryClient = useQueryClient();
   const selectedBusinessId = localStorage.getItem('selectedBusinessId');
 
-  const { data: reviews, isLoading: isLoadingReviews } = useQuery({
-    queryKey: ['reviews', selectedBusinessId, filters],
+  const { data: reviewsData, isLoading: isLoadingReviews } = useQuery({
+    queryKey: ['reviews', selectedBusinessId, filters, currentPage],
     queryFn: async () => {
       const response = await api.get(`/businesses/reviews/business/${selectedBusinessId}`, {
-        params: filters,
+        params: {
+          ...filters,
+          page: currentPage,
+          size: pageSize
+        },
       });
-      return response.data.content as Review[];
+      return response.data as PaginatedResponse;
     },
-    
   });
+
+  const reviews = reviewsData?.content || [];
+  const totalPages = reviewsData?.totalPages || 0;
+  const totalReviews = reviewsData?.totalElements || 0;
 
   const { data: metrics, isLoading: isLoadingMetrics } = useQuery({
     queryKey: ['review-metrics', selectedBusinessId],
@@ -165,8 +200,8 @@ export default function Reviews() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Metrics Overview */}
+    <div className="space-y-6 p-12">
+      {/* Metrics Overview */} 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center">
@@ -293,132 +328,202 @@ export default function Reviews() {
       </div>
 
       {/* Reviews List */}
-      <div className="space-y-4">
-        {reviews?.map((review) => (
-          <div key={review.id} className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                    <span className="text-xl font-medium text-gray-600">
-                      {review.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center">
-                    <h3 className="text-lg font-semibold text-gray-900">{review.name}</h3>
-                    <span className="ml-2 text-sm text-gray-500">
-                      {review.date ? 
-                        (() => {
-                          try {
-                            return format(new Date(review.date), 'PP');
-                          } catch (error) {
-                            return 'Invalid date';
-                          }
-                        })() : 'No date available'
-                      }
-                    </span>
-                  </div>
-                  <div className="flex items-center mt-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-5 h-5 ${
-                          i < review.rating ? 'text-yellow-400' : 'text-gray-300'
-                        }`}
-                        fill={i < review.rating ? 'currentColor' : 'none'}
-                      />
-                    ))}
-                  </div>
-                  <p className="mt-2 text-gray-600">{review.comment}</p>
-                  
-                  {review.images.length > 0 && (
-                    <div className="mt-3 flex space-x-2">
-                      {review.images.map((image, index) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`Review image ${index + 1}`}
-                          className="w-20 h-20 object-cover rounded-lg"
+      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-blue-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Rating
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Review
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {reviews?.map((review) => (
+                <tr key={review.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10">
+                        <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span className="text-sm font-medium text-blue-600">
+                            {review.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {review.name}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < review.rating ? 'text-yellow-400' : 'text-gray-300'
+                          }`}
+                          fill={i < review.rating ? 'currentColor' : 'none'}
                         />
                       ))}
+                      <span className="ml-2 text-sm text-gray-600">
+                        {review.rating}/5
+                      </span>
                     </div>
-                  )}
-
-                  {review.response && (
-                    <div className="mt-4 pl-4 border-l-4 border-gray-200">
-                      <p className="text-sm font-medium text-gray-900">Business Response:</p>
-                      <p className="mt-1 text-gray-600">{review.response}</p>
-                      <p className="mt-1 text-sm text-gray-500">
-                        {review.responseDate ? 
-                          (() => {
-                            try {
-                              return format(new Date(review.responseDate), 'PP');
-                            } catch (error) {
-                              return 'Invalid date';
-                            }
-                          })() : 'No date available'
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 max-w-xs">
+                      {review.comment.length > 100
+                        ? `${review.comment.substring(0, 100)}...`
+                        : review.comment
+                      }
+                      {review.images.length > 0 && (
+                        <div className="mt-2 flex space-x-1">
+                          {review.images.slice(0, 3).map((image, index) => (
+                            <img
+                              key={index}
+                              src={image}
+                              alt={`Review image ${index + 1}`}
+                              className="w-8 h-8 object-cover rounded"
+                            />
+                          ))}
+                          {review.images.length > 3 && (
+                            <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center text-xs text-gray-600">
+                              +{review.images.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {review.date ?
+                      (() => {
+                        try {
+                          return format(new Date(review.date), 'MMM dd, yyyy');
+                        } catch (error) {
+                          return 'Invalid date';
                         }
-                      </p>
+                      })() : 'No date'
+                    }
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                      review.status === 'PENDING'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : review.status === 'RESPONDED'
+                        ? 'bg-green-100 text-green-800'
+                        : review.status === 'FLAGGED'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {review.status}
+                    </span>
+                    {review.response && (
+                      <div className="mt-1 text-xs text-gray-500">
+                        Responded
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end space-x-2">
+                      {!review.response && (
+                        <button
+                          onClick={() => {
+                            setSelectedReview(review);
+                            setIsResponseModalOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-900 px-2 py-1 text-xs font-medium hover:bg-blue-50 rounded"
+                        >
+                          Respond
+                        </button>
+                      )}
+                      <button
+                        onClick={() => updateStatusMutation.mutate({
+                          reviewId: review.id,
+                          status: 'FLAGGED'
+                        })}
+                        className="p-1 text-gray-400 hover:text-red-600"
+                        title="Flag review"
+                      >
+                        <Flag className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => updateStatusMutation.mutate({
+                          reviewId: review.id,
+                          status: 'ARCHIVED'
+                        })}
+                        className="p-1 text-gray-400 hover:text-gray-600"
+                        title="Archive review"
+                      >
+                        <Archive className="w-4 h-4" />
+                      </button>
                     </div>
-                  )}
-                </div>
-              </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-              <div className="flex items-center space-x-2">
-                {!review.response && (
-                  <button
-                    onClick={() => {
-                      setSelectedReview(review);
-                      setIsResponseModalOpen(true);
-                    }}
-                    className="px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
-                  >
-                    Respond
-                  </button>
-                )}
-                <button
-                  onClick={() => updateStatusMutation.mutate({
-                    reviewId: review.id,
-                    status: 'FLAGGED'
-                  })}
-                  className="p-1 text-gray-400 hover:text-red-600"
-                >
-                  <Flag className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => updateStatusMutation.mutate({
-                    reviewId: review.id,
-                    status: 'ARCHIVED'
-                  })}
-                  className="p-1 text-gray-400 hover:text-gray-600"
-                >
-                  <Archive className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center space-x-4">
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                review.sentiment === 'POSITIVE' ? 'bg-green-100 text-green-800' :
-                review.sentiment === 'NEGATIVE' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {review.sentiment}
-              </span>
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                review.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                review.status === 'RESPONDED' ? 'bg-green-100 text-green-800' :
-                review.status === 'FLAGGED' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {review.status}
-              </span>
-            </div>
+        {reviews?.length === 0 && (
+          <div className="text-center py-12">
+            <MessageSquare className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No reviews</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              You haven't received any customer reviews yet.
+            </p>
           </div>
-        ))}
+        )}
       </div>
+
+      {/* Pagination */}
+      {reviews && reviews.length > 0 && (
+        <div className="flex items-center justify-between bg-white px-4 py-3 sm:px-6 rounded-lg shadow-sm">
+          <div className="flex items-center text-sm text-gray-700">
+            <p>
+              Showing <span className="font-medium">{(currentPage - 1) * 10 + 1}</span> to{' '}
+              <span className="font-medium">
+                {Math.min(currentPage * 10, totalReviews || 0)}
+              </span>{' '}
+              of <span className="font-medium">{totalReviews || 0}</span> results
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Response Modal */}
       {isResponseModalOpen && selectedReview && (
