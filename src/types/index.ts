@@ -275,3 +275,37 @@ export interface Permission {
   resource: string;
   actions: string[];
 }
+
+// Marketplace Product Types
+export interface Product {
+  id: number;
+  businessId: number;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  stockQuantity: number;
+  minOrderQuantity: number;
+  category: string;
+  sku: string;
+  isActive: boolean;
+  specifications: string; // semi-colon separated key:value pairs e.g. "Color: White; Voltage: 220V"
+  serviceIds: number[]; // derived from serviceIdsJson
+  images: string[]; // file names or URLs returned by API
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProductFilters {
+  search?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  active?: boolean;
+  serviceId?: number;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+}

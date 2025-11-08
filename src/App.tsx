@@ -7,6 +7,7 @@ import BusinessSelection from './pages/BusinessSelection';
 import DashboardLayout from './components/layouts/DashboardLayout';
 import Overview from './pages/dashboard/Overview';
 import Services from './pages/dashboard/Services';
+import Products from './pages/dashboard/Products';
 import Orders from './pages/dashboard/Orders';
 import Promotions from './pages/dashboard/Promotions';
 import Enquiries from './pages/dashboard/Enquiries';
@@ -41,6 +42,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<Overview />} />
                 <Route path="services" element={<Services />} />
+                <Route path="products" element={<Products />} />
                 <Route path="orders" element={<Orders />} />
                 <Route path="promotions" element={<Promotions />} />
                 <Route path="enquiries" element={<Enquiries />} />

@@ -22,7 +22,7 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const selectedBusinessId = localStorage.getItem('selectedBusinessId');
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Business>();
+  const { register, handleSubmit, reset, formState: { errors }, setValue, getValues } = useForm<Business>();
 
   const { data: business, isLoading } = useQuery({
     queryKey: ['business', selectedBusinessId],
@@ -65,8 +65,10 @@ export default function Profile() {
     formData.append('website', data.website || '');
     
     // Append hours and social media
-    formData.append('openingHoursJson', JSON.stringify(data.openingHours));
-    formData.append('socialMediaJson', JSON.stringify(data.socialMedia));
+    const openingHoursPayload = (data as any).openingHours ?? business?.openingHours ?? {};
+    formData.append('openingHoursJson', JSON.stringify(openingHoursPayload));
+    const socialMediaPayload = (data as any).socialMedia ?? business?.socialMedia ?? {};
+    formData.append('socialMediaJson', JSON.stringify(socialMediaPayload));
 
   updateMutation.mutate(formData);
   };
@@ -234,15 +236,13 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => {
-                    // Copy Monday's hours to all weekdays
-                    const mondayOpen = (business.openingHours as any).mondayOpen;
-                    const mondayClose = (business.openingHours as any).mondayClose;
+                    // Copy current Monday values from form state to Tuesday-Friday
+                    const mondayOpen = getValues('openingHours.mondayOpen' as any);
+                    const mondayClose = getValues('openingHours.mondayClose' as any);
                     if (mondayOpen && mondayClose) {
-                      ['tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
-                        const openField = document.querySelector(`input[name="openingHours.${day}Open"]`) as HTMLInputElement;
-                        const closeField = document.querySelector(`input[name="openingHours.${day}Close"]`) as HTMLInputElement;
-                        if (openField) openField.value = mondayOpen;
-                        if (closeField) closeField.value = mondayClose;
+                      (['tuesday', 'wednesday', 'thursday', 'friday'] as const).forEach((day) => {
+                        setValue(`openingHours.${day}Open` as any, mondayOpen, { shouldDirty: true, shouldValidate: true });
+                        setValue(`openingHours.${day}Close` as any, mondayClose, { shouldDirty: true, shouldValidate: true });
                       });
                     }
                   }}
@@ -279,14 +279,14 @@ export default function Profile() {
 
                       <input
                         type="time"
-                        defaultValue={(business.openingHours as any)[`${day}Open`]}
+                        defaultValue={(business.openingHours as any)?.[`${day}Open`]}
                         {...register(`openingHours.${day}Open` as any)}
                         className="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
 
                       <input
                         type="time"
-                        defaultValue={(business.openingHours as any)[`${day}Close`]}
+                        defaultValue={(business.openingHours as any)?.[`${day}Close`]}
                         {...register(`openingHours.${day}Close` as any)}
                         className="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-colors disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
@@ -487,19 +487,30 @@ export default function Profile() {
               Opening Hours
             </h3>
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {Object.entries(business.openingHours).reduce((acc: any[], [key, value]) => {
-                if (key.includes('Open')) {
-                  const day = key.replace('Open', '');
-                  const closeTime = (business.openingHours as any)[`${day}Close`];
-                  acc.push(
-                    <div key={day} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
-                      <span className="text-sm font-medium text-gray-600 capitalize">{day}</span>
-                      <span className="text-sm text-gray-900">{value} - {closeTime}</span>
-                    </div>
+              {/* Safely render opening hours; backend may return null/undefined */}
+              {(() => {
+                const openingHours = (business.openingHours ?? {}) as Record<string, string>;
+                const entries = Object.entries(openingHours);
+                if (!entries.length) {
+                  return (
+                    <p className="text-sm text-gray-500 col-span-1 sm:col-span-2">No opening hours set.</p>
                   );
                 }
-                return acc;
-              }, [])}
+                return entries.reduce((acc: any[], [key, value]) => {
+                  if (key.endsWith('Open')) {
+                    const day = key.replace('Open', '');
+                    const closeTime = openingHours[`${day}Close`] || '—';
+                    const openTime = value || '—';
+                    acc.push(
+                      <div key={day} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
+                        <span className="text-sm font-medium text-gray-600 capitalize">{day}</span>
+                        <span className="text-sm text-gray-900">{openTime} - {closeTime}</span>
+                      </div>
+                    );
+                  }
+                  return acc;
+                }, []);
+              })()}
             </div>
           </div>
         </div>

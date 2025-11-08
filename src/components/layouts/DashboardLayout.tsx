@@ -17,6 +17,7 @@ type NavItem = { name: string; path: string; icon: LucideIcon; children?: NavChi
 
 const navigation: NavItem[] = [
   { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Products', path: '/dashboard/products', icon: Package },
   { name: 'Services', path: '/dashboard/services', icon: Package },
   { name: 'Orders', path: '/dashboard/orders', icon: ShoppingCart },
   { name: 'Promotions', path: '/dashboard/promotions', icon: Megaphone },
