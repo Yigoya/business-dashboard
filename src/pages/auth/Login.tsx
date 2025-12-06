@@ -29,8 +29,16 @@ export default function Login() {
         operatingSystem: "WEB"
       });
 
-      setAuth(response.data.user, response.data.token);
+      const user = response.data.user;
+      const token = response.data.token;
+      setAuth(user, token);
       toast.success('Login successful!');
+
+      // If user account not verified, send to verify-email page
+      if (user?.status && String(user.status).toLowerCase() !== 'active') {
+        navigate('/auth/verify-email');
+        return;
+      }
 
       // Check for redirect after auth
       const redirectPath = localStorage.getItem('redirectAfterAuth');

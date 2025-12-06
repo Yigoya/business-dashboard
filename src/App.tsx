@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import VerifyEmail from './pages/auth/VerifyEmail';
+import VerifyCallback from './pages/auth/VerifyCallback';
 import BusinessSelection from './pages/BusinessSelection';
 import DashboardLayout from './components/layouts/DashboardLayout';
 import Overview from './pages/dashboard/Overview';
@@ -28,6 +30,8 @@ function App() {
           {/* Public Routes */}
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
+          <Route path="/auth/verify-email" element={<VerifyEmail />} />
+          <Route path="/auth/verify" element={<VerifyCallback />} />
           {/* Root Route */}
           <Route path="/" element={
             token ? <Navigate to="/business-selection" replace /> : <Navigate to="/auth/login" replace />

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Mail, Lock, User, Phone, Coffee } from 'lucide-react';
 import api, { getErrorMessage } from '../../lib/axios';
+import { PhoneInput } from 'react-international-phone';
 
 interface RegisterForm {
   name: string;
@@ -15,14 +16,18 @@ interface RegisterForm {
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>();
+  const { register, control, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
+    // react-international-phone expects full e.164-style value with '+'
+    defaultValues: { phoneNumber: '+251' }
+  });
 
   const onSubmit = async (data: RegisterForm) => {
     try {
       setIsLoading(true);
       await api.post('/auth/register', data);
-      toast.success('Registration successful! Please sign in.');
-      navigate('/auth/login');
+      toast.success('Registration successful! Please verify your email.');
+      // Pass email to verify page so user doesn't re-enter
+      navigate('/auth/verify-email', { state: { email: data.email } });
     } catch (error) {
       console.error(error);
       toast.error(getErrorMessage(error));
@@ -96,18 +101,29 @@ export default function Register() {
               Phone Number
             </label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                {...register("phoneNumber", {
+              <Controller
+                name="phoneNumber"
+                control={control}
+                rules={{
                   required: "Phone number is required",
-                  pattern: {
-                    value: /^[0-9]{10}$/,
-                    message: "Invalid phone number"
+                  validate: (value) => {
+                    // Expect full international number starting with +, min 8 digits after country code
+                    const e164 = /^\+\d{8,}$/;
+                    return e164.test(value) || "Enter a valid international phone number";
                   }
-                })}
-                type="tel"
-                className="pl-10 w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your phone number"
+                }}
+                render={({ field }) => (
+                  <PhoneInput
+                    defaultCountry="et"
+                    value={field.value || ''}
+                    onChange={(val) => field.onChange(val)}
+                    onBlur={field.onBlur}
+                    forceDialCode
+                    disableDialCodePrefill={false}
+                    inputClassName="!w-full !rounded-lg !border !border-gray-300 !px-4 !py-2 focus:!outline-none focus:!ring-2 focus:!ring-blue-500 focus:!border-transparent"
+                    className="!w-full"
+                  />
+                )}
               />
             </div>
             {errors.phoneNumber && (
