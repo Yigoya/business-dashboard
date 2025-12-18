@@ -420,7 +420,7 @@ export default function Profile() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700">
         <div className="p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>

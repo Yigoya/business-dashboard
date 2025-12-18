@@ -199,35 +199,17 @@ export default function BusinessSelection() {
             </div>
           ))}
 
-          {/* Create new card */}
-          <div
-            onClick={() => navigate('/create-business')}
-            className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 hover:shadow-md transition-all cursor-pointer border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-center"
-          >
-            <div className="rounded-full bg-blue-50 p-3 mb-3">
-              <Plus className="w-7 h-7 text-blue-600" />
-            </div>
-            <h3 className="text-base font-semibold text-gray-900">Create New Business</h3>
-            <p className="mt-1 text-sm text-gray-500">Set up and manage a new business</p>
-          </div>
+          {/* Removed extra create card to avoid duplicate entry points */}
         </div>
 
-        {/* Empty state */}
+        {/* Empty state with guidance only to reduce duplicate buttons */}
         {filtered.length === 0 && (
           <div className="mt-8 text-center">
             <div className="mx-auto h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center">
               <Store className="h-8 w-8 text-blue-600" />
             </div>
             <h3 className="mt-4 text-lg font-semibold text-gray-900">No businesses found</h3>
-            <p className="mt-1 text-sm text-gray-500">Try adjusting your search or create a new business.</p>
-            <div className="mt-4">
-              <button
-                onClick={() => navigate('/create-business')}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4" /> Create New Business
-              </button>
-            </div>
+            <p className="mt-1 text-sm text-gray-500">Use the "New Business" button above to create one.</p>
           </div>
         )}
       </div>
