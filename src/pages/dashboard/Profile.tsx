@@ -15,7 +15,19 @@ import {
   Linkedin
 } from 'lucide-react';
 import api, { getErrorMessage } from '../../lib/axios';
-import { Business } from '../../types';
+import { Business, Location } from '../../types';
+
+const emptyLocation: Location = {
+  street: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  country: '',
+  name: '',
+  type: null,
+  parentLocationId: null,
+  coordinates: null,
+};
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -48,7 +60,6 @@ export default function Profile() {
   });
 
   const onSubmit = async (data: Business) => {
-  console.log({ ...business?.location, ...data.location})
     const formData = new FormData();
     
     // Append basic info
@@ -57,7 +68,12 @@ export default function Profile() {
     formData.append('ownerId', business!.ownerId.toString());
     // formData.append('categoryIdsJson', JSON.stringify(data.categoryIds || []));
     // Append location
-    formData.append('locationJson', JSON.stringify({ ...business?.location, ...data.location}));
+    const locationPayload = {
+      ...emptyLocation,
+      ...(business?.location ?? {}),
+      ...(data.location ?? {}),
+    };
+    formData.append('locationJson', JSON.stringify(locationPayload));
     
     // Append contact info
     formData.append('phoneNumber', data.phoneNumber);
@@ -97,6 +113,8 @@ export default function Profile() {
       </div>
     );
   }
+
+  const location = business.location ?? emptyLocation;
 
   // Helper for opening hours rendering in edit mode
   const days: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'> = [
@@ -193,7 +211,7 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Street</label>
                   <input
                     {...register('location.street', { required: 'Street is required' })}
-                    defaultValue={business.location.street}
+                    defaultValue={location.street}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
                 </div>
@@ -201,7 +219,7 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                   <input
                     {...register('location.city', { required: 'City is required' })}
-                    defaultValue={business.location.city}
+                    defaultValue={location.city}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
                 </div>
@@ -209,7 +227,7 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                   <input
                     {...register('location.state', { required: 'State is required' })}
-                    defaultValue={business.location.state}
+                    defaultValue={location.state}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
                 </div>
@@ -217,7 +235,7 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
                   <input
                     {...register('location.postalCode', { required: 'Postal code is required' })}
-                    defaultValue={business.location.postalCode}
+                    defaultValue={location.postalCode}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
                 </div>
@@ -434,7 +452,7 @@ export default function Profile() {
                 )}
                 <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white ring-1 ring-white/20">
                   <MapPin className="h-3.5 w-3.5 mr-1" />
-                  {business.location.city}, {business.location.state}
+                  {[location.city, location.state].filter(Boolean).join(', ') || 'Location not set'}
                 </span>
               </div>
             </div>
@@ -472,9 +490,9 @@ export default function Profile() {
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Location</h4>
                 <p className="mt-1 text-base text-gray-900">
-                  {business.location.street}<br />
-                  {business.location.city}, {business.location.state} {business.location.postalCode}<br />
-                  {business.location.country}
+                  {location.street || 'Street not set'}<br />
+                  {[location.city, location.state].filter(Boolean).join(', ') || 'City/State not set'} {location.postalCode || ''}<br />
+                  {location.country || 'Country not set'}
                 </p>
               </div>
             </div>

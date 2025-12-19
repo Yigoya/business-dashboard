@@ -15,7 +15,7 @@ export interface Business {
   description: string;
   ownerId: number;
   categoryIds: number[];
-  location: Location;
+  location: Location | null;
   phoneNumber: string;
   email: string;
   website: string;

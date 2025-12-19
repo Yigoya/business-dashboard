@@ -28,6 +28,10 @@ export default function Overview() {
     enabled: !!selectedBusinessId,
   });
 
+  const locationLabel = business
+    ? [business.location?.city, business.location?.state].filter(Boolean).join(', ') || 'Location not set'
+    : null;
+
   const stats = [
     {
       name: 'Total Orders',
@@ -101,7 +105,7 @@ export default function Overview() {
             <h2 className="text-2xl sm:text-3xl font-bold">Overview</h2>
             {business && (
               <p className="mt-1 text-sm text-white/90 flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> {business.name} • {business.location.city}, {business.location.state}
+                <MapPin className="h-4 w-4" /> {business.name} • {locationLabel}
               </p>
             )}
           </div>

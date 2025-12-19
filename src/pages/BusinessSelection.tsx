@@ -43,14 +43,16 @@ export default function BusinessSelection() {
     let list = businesses.filter((b) => {
       if (!q) return true;
       const inName = b.name.toLowerCase().includes(q);
-      const inCity = b.location.city?.toLowerCase().includes(q);
-      const inState = b.location.state?.toLowerCase().includes(q);
-      return inName || inCity || inState;
+      const city = b.location?.city?.toLowerCase() ?? '';
+      const state = b.location?.state?.toLowerCase() ?? '';
+      return inName || city.includes(q) || state.includes(q);
     });
     if (onlyVerified) list = list.filter((b) => b.isVerified);
     list.sort((a, b) => {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
-      return a.location.city.localeCompare(b.location.city);
+      const cityA = a.location?.city ?? '';
+      const cityB = b.location?.city ?? '';
+      return cityA.localeCompare(cityB);
     });
     return list;
   }, [businesses, search, onlyVerified, sortBy]);
@@ -144,12 +146,17 @@ export default function BusinessSelection() {
 
         {/* Grid */}
         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((business) => (
-            <div
-              key={business.id}
-              className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 hover:shadow-md transition-all cursor-pointer"
-              onClick={() => handleBusinessSelect(business.id)}
-            >
+          {filtered.map((business) => {
+            const locationLabel = [business.location?.city, business.location?.state]
+              .filter(Boolean)
+              .join(', ') || 'Location not set';
+
+            return (
+              <div
+                key={business.id}
+                className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 hover:shadow-md transition-all cursor-pointer"
+                onClick={() => handleBusinessSelect(business.id)}
+              >
               <div className="flex items-start justify-between">
                 <div className="flex items-center">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -158,7 +165,7 @@ export default function BusinessSelection() {
                   <div className="ml-4">
                     <h3 className="text-base font-semibold text-gray-900 group-hover:text-blue-700">{business.name}</h3>
                     <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                      <MapPin className="h-3.5 w-3.5" /> {business.location.city}, {business.location.state}
+                      <MapPin className="h-3.5 w-3.5" /> {locationLabel}
                     </div>
                   </div>
                 </div>
@@ -197,7 +204,8 @@ export default function BusinessSelection() {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           {/* Removed extra create card to avoid duplicate entry points */}
         </div>

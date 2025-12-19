@@ -52,20 +52,26 @@ export default function BusinessSearch({ onSelect, excludeId }: BusinessSearchPr
             <div className="p-4 text-center text-gray-500">No businesses found</div>
           ) : (
             <ul>
-              {filteredBusinesses?.map((business) => (
-                <li
-                  key={business.id}
-                  className="p-3 hover:bg-gray-50 cursor-pointer"
-                  onClick={() => {
-                    onSelect(business);
-                    setIsOpen(false);
-                    setSearch('');
-                  }}
-                >
-                  <div className="font-medium text-gray-900">{business.name}</div>
-                  <div className="text-sm text-gray-500">{business.location.city}, {business.location.state}</div>
-                </li>
-              ))}
+              {filteredBusinesses?.map((business) => {
+                const locationLabel = [business.location?.city, business.location?.state]
+                  .filter(Boolean)
+                  .join(', ') || 'Location not set';
+
+                return (
+                  <li
+                    key={business.id}
+                    className="p-3 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => {
+                      onSelect(business);
+                      setIsOpen(false);
+                      setSearch('');
+                    }}
+                  >
+                    <div className="font-medium text-gray-900">{business.name}</div>
+                    <div className="text-sm text-gray-500">{locationLabel}</div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
