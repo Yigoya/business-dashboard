@@ -2,9 +2,21 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { Building2, MapPin, Clock, Globe, Camera } from 'lucide-react';
+import { Building2, MapPin, Clock, Globe, Camera, ChevronRight, ChevronDown } from 'lucide-react';
 import api from '../lib/axios';
 import useAuthStore  from '../store/authStore';
+
+interface ServiceNode {
+  serviceId: number;
+  name: string;
+  services: ServiceNode[];
+}
+
+interface ServiceCategoryResponse {
+  categoryId: number;
+  categoryName: string;
+  services: ServiceNode[];
+}
 
 interface BusinessForm {
   name: string;
@@ -83,11 +95,17 @@ export default function BusinessRegistration() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [categoryTree, setCategoryTree] = useState<ServiceNode[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [expandedServiceIds, setExpandedServiceIds] = useState<number[]>([]);
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
   
   const { register, handleSubmit, watch, formState: { errors }, setValue } = useForm<BusinessForm>({
     defaultValues: {
+      categoryIds: [],
       openingHours: DEFAULT_OPENING_HOURS,
       socialMedia: DEFAULT_SOCIAL_MEDIA,
       phoneNumber: PHONE_PREFIX,
@@ -110,6 +128,13 @@ export default function BusinessRegistration() {
   const progressPercentage = (step / steps.length) * 100;
   const images = watch('images');
   const phoneValue = watch('phoneNumber');
+
+  useEffect(() => {
+    setValue('categoryIds', selectedCategoryIds, {
+      shouldDirty: selectedCategoryIds.length > 0,
+      shouldValidate: false,
+    });
+  }, [selectedCategoryIds, setValue]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
@@ -141,6 +166,55 @@ export default function BusinessRegistration() {
   }, [images]);
 
   useEffect(() => {
+    if (user?.role !== 'BUSINESS') {
+      setCategoryTree([]);
+      setSelectedCategoryIds([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const fetchCategories = async () => {
+      try {
+        setIsLoadingCategories(true);
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        const response = await api.get<ServiceCategoryResponse[]>('/admin/services', {
+          signal: controller.signal,
+          headers,
+        });
+        if (!isMounted) {
+          return;
+        }
+        const categories = Array.isArray(response.data) ? response.data : [];
+        const yellowPageCategory = categories.find((category) => category.categoryId === 2);
+        const nextTree = yellowPageCategory?.services || [];
+        setCategoryTree(nextTree);
+        setExpandedServiceIds([]);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error(error);
+          toast.error('Unable to load categories.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingCategories(false);
+        }
+      }
+    };
+
+    fetchCategories();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [token, user?.role]);
+
+  useEffect(() => {
     if (!phoneValue) {
       setValue('phoneNumber', PHONE_PREFIX, { shouldValidate: false });
       return;
@@ -165,7 +239,7 @@ export default function BusinessRegistration() {
       formData.append('name', data.name);
       formData.append('description', data.description);
       formData.append('ownerId', user?.id.toString() || '');
-      // formData.append('categoryIds', JSON.stringify([1, 2])); // Example categories
+      formData.append('serviceIdsJson', JSON.stringify(data.categoryIds || []));
       
       // Append location
       formData.append('locationJson', JSON.stringify(data.location));
@@ -202,6 +276,68 @@ export default function BusinessRegistration() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCategoryToggle = (serviceId: number) => {
+    setSelectedCategoryIds((prev) => {
+      const exists = prev.includes(serviceId);
+      const next = exists ? prev.filter((id) => id !== serviceId) : [...prev, serviceId];
+      return next;
+    });
+  };
+
+  const handleNodeExpansionToggle = (serviceId: number) => {
+    setExpandedServiceIds((prev) => (
+      prev.includes(serviceId)
+        ? prev.filter((id) => id !== serviceId)
+        : [...prev, serviceId]
+    ));
+  };
+
+  const renderServiceTree = (nodes: ServiceNode[], depth = 0): JSX.Element[] => {
+    return nodes.map((node) => {
+      const isChecked = selectedCategoryIds.includes(node.serviceId);
+      const hasChildren = Array.isArray(node.services) && node.services.length > 0;
+      const isExpanded = expandedServiceIds.includes(node.serviceId);
+
+      return (
+        <div key={node.serviceId} className={`mt-2 ${depth > 0 ? 'ml-4' : ''}`}>
+          <div className="flex items-start gap-2">
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => handleNodeExpansionToggle(node.serviceId)}
+                className="mt-1 rounded text-gray-500 transition hover:text-[#2b78ac]"
+                aria-label={isExpanded ? 'Collapse category' : 'Expand category'}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            ) : (
+              <span className="mt-1 inline-flex h-4 w-4" />
+            )}
+
+            <label className="flex flex-1 items-center gap-3">
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={() => handleCategoryToggle(node.serviceId)}
+                className="h-4 w-4 rounded border-gray-300 text-[#2b78ac] focus:ring-[#2b78ac]"
+              />
+              <span className="text-sm text-gray-700">{node.name}</span>
+            </label>
+          </div>
+          {hasChildren && isExpanded && (
+            <div className="ml-6 border-l border-gray-200 pl-4">
+              {renderServiceTree(node.services, depth + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
   };
 
   const renderStep = () => {
@@ -286,6 +422,26 @@ export default function BusinessRegistration() {
                 </div>
               </div>
             </section>
+
+            {user?.role === 'BUSINESS' && (
+              <section className="rounded-xl border border-gray-100 bg-white/80 p-6 shadow-sm">
+                <header>
+                  <h3 className="text-lg font-semibold text-gray-900">Business Categories</h3>
+                  <p className="mt-1 text-sm text-gray-500">Select the services that best describe your business offerings.</p>
+                </header>
+                <div className="mt-4 max-h-72 overflow-y-auto pr-1">
+                  {isLoadingCategories ? (
+                    <p className="text-sm text-gray-500">Loading categories...</p>
+                  ) : categoryTree.length === 0 ? (
+                    <p className="text-sm text-gray-500">No categories available.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {renderServiceTree(categoryTree)}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
           </div>
         );
 

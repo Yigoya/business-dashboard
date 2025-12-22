@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Mail, Lock, User, Phone, Coffee } from 'lucide-react';
@@ -17,10 +17,16 @@ interface RegisterForm {
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { register, control, handleSubmit, watch, formState: { errors } } = useForm<RegisterForm>({
     // react-international-phone expects full e.164-style value with '+'
     defaultValues: { phoneNumber: '+251' }
   });
+
+  const selectedRole = useMemo(() => {
+    const role = (searchParams.get('role') || '').toUpperCase();
+    return role === 'BUSINESS_MARKET' ? 'BUSINESS_MARKET' : 'BUSINESS';
+  }, [searchParams]);
 
   const passwordValue = watch('password');
 
@@ -28,7 +34,7 @@ export default function Register() {
     try {
       setIsLoading(true);
       const { confirmPassword, ...payload } = data;
-      await api.post('/auth/register', payload);
+      await api.post('/auth/register', { ...payload, role: selectedRole });
       toast.success('Registration successful! Please verify your email.');
       // Pass email to verify page so user doesn't re-enter
       navigate('/auth/verify-email', { state: { email: data.email } });

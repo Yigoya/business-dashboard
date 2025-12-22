@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Store, CheckCircle, XCircle, Search, Star, MapPin, Phone } from 'lucide-react';
+import { Plus, Store, CheckCircle, XCircle, Search, Star, MapPin, Phone, LogOut } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../lib/axios';
 import { Business } from '../types';
@@ -12,9 +12,15 @@ export default function BusinessSelection() {
   const [search, setSearch] = useState('');
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'city'>('name');
-  const { user } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
   const lastSelectedId = typeof window !== 'undefined' ? localStorage.getItem('selectedBusinessId') : null;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth/login');
+  };
 
   useEffect(() => {
     const fetchBusinesses = async () => {
@@ -138,6 +144,12 @@ export default function BusinessSelection() {
                   className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-50"
                 >
                   <Plus className="h-4 w-4" /> New Business
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white ring-1 ring-white/50 hover:bg-white/20"
+                >
+                  <LogOut className="h-4 w-4" /> Logout
                 </button>
               </div>
             </div>

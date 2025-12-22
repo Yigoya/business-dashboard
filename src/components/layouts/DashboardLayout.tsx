@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
@@ -28,7 +29,15 @@ const navigation: NavItem[] = [
 
 export default function DashboardLayout() {
   const location = useLocation();
-  const { logout } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+
+  const filteredNavigation = useMemo(() => {
+    if (user?.role !== 'BUSINESS_MARKET') {
+      return navigation.filter((item) => item.path !== '/dashboard/products');
+    }
+    return navigation;
+  }, [user?.role]);
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -39,7 +48,7 @@ export default function DashboardLayout() {
             <h1 className="text-xl font-bold text-gray-800">Business Dashboard</h1>
           </div>
           <nav className="mt-6 px-3">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const isActive = location.pathname === item.path || 
                 (item.children && item.children.some(child => location.pathname === child.path));
 
