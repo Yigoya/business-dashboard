@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
@@ -38,6 +38,24 @@ export default function Products() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [newImages, setNewImages] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const acceptImages = (files: File[]) => {
+    if (!files.length) return;
+    setNewImages(prev => {
+      const seen = new Set(prev.map(f => `${f.name}-${f.size}-${f.lastModified}`));
+      const next = [...prev];
+      files.forEach(file => {
+        if (next.length >= 10) return;
+        const key = `${file.name}-${file.size}-${file.lastModified}`;
+        if (!seen.has(key) && file.type.startsWith('image/')) {
+          seen.add(key);
+          next.push(file);
+        }
+      });
+      return next;
+    });
+  };
 
   const [filters, setFilters] = useState<ProductFilters>({
     search: '',
@@ -488,19 +506,60 @@ export default function Products() {
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">Images</label>
                 <input
+                  ref={fileInputRef}
                   type="file"
+                  className="hidden"
                   multiple
                   accept="image/*"
                   onChange={(e) => {
                     const files = Array.from(e.target.files ?? []);
-                    setNewImages(prev => [...prev, ...files]);
+                    acceptImages(files);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
                   }}
                 />
+                <div
+                  className="mt-1 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center hover:border-blue-300 hover:bg-blue-50"
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    acceptImages(Array.from(event.dataTransfer?.files ?? []));
+                  }}
+                >
+                  <p className="text-sm text-gray-600">
+                    Drop product photos here or
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="ml-1 inline-flex items-center rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                    >
+                      Browse
+                    </button>
+                  </p>
+                  <p className="text-xs text-gray-500">Upload up to 10 images. The first preview becomes the cover.</p>
+                  {newImages.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setNewImages([])}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Clear selection
+                    </button>
+                  )}
+                </div>
                 {newImages.length > 0 && (
-                  <div className="mt-3 grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
                     {newImages.map((file, idx) => (
                       <div key={idx} className="relative group border rounded-lg overflow-hidden">
-                        <img src={URL.createObjectURL(file)} alt={`preview-${idx}`} className="w-full h-24 object-cover" />
+                        <img src={URL.createObjectURL(file)} alt={`preview-${idx}`} className="h-24 w-full object-cover" />
+                        {idx === 0 && (
+                          <span className="absolute left-1 top-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+                            Cover
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => setNewImages(arr => arr.filter((_, i) => i !== idx))}

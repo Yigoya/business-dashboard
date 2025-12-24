@@ -21,7 +21,8 @@ import BusinessRegistration from './pages/BusinessRegistration';
 const queryClient = new QueryClient();
 
 function App() {
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
+  const defaultProtectedPath = user?.role === 'BUSINESS_MARKET' ? '/dashboard' : '/business-selection';
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -34,7 +35,7 @@ function App() {
           <Route path="/auth/verify" element={<VerifyCallback />} />
           {/* Root Route */}
           <Route path="/" element={
-            token ? <Navigate to="/business-selection" replace /> : <Navigate to="/auth/login" replace />
+            token ? <Navigate to={defaultProtectedPath} replace /> : <Navigate to="/auth/login" replace />
           } />
           
           {/* Protected Routes */}

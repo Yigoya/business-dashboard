@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Store, CheckCircle, XCircle, Search, Star, MapPin, Phone, LogOut } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -16,6 +16,7 @@ export default function BusinessSelection() {
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
   const lastSelectedId = typeof window !== 'undefined' ? localStorage.getItem('selectedBusinessId') : null;
+  const autoRedirected = useRef(false);
 
   const handleLogout = () => {
     logout();
@@ -38,6 +39,13 @@ export default function BusinessSelection() {
 
     fetchBusinesses();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.role === 'BUSINESS_MARKET' && businesses.length > 0 && !autoRedirected.current) {
+      autoRedirected.current = true;
+      handleBusinessSelect(businesses[0].id);
+    }
+  }, [user?.role, businesses]);
 
   const handleBusinessSelect = (businessId: number) => {
     localStorage.setItem('selectedBusinessId', businessId.toString());
