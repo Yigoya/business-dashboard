@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
@@ -9,12 +9,13 @@ import {
   Mail,
   Globe,
   Clock,
+  Camera,
   Facebook,
   Twitter,
   Instagram,
   Linkedin
 } from 'lucide-react';
-import api, { getErrorMessage } from '../../lib/axios';
+import api, { API_URL_FILE, getErrorMessage } from '../../lib/axios';
 import { Business, Location } from '../../types';
 
 const emptyLocation: Location = {
@@ -31,6 +32,8 @@ const emptyLocation: Location = {
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
+  const [newImages, setNewImages] = useState<FileList | null>(null);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const selectedBusinessId = localStorage.getItem('selectedBusinessId');
 
@@ -46,12 +49,18 @@ export default function Profile() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      return api.put(`/businesses/${selectedBusinessId}`, data);
+      return api.put(`/businesses/${selectedBusinessId}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['business'] });
       toast.success('Business profile updated successfully');
       setIsEditing(false);
+      setNewImages(null);
+      setPreviewUrls([]);
     },
     onError: (error) => {
       console.log(error)
@@ -59,13 +68,23 @@ export default function Profile() {
     },
   });
 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    reset();
+    setNewImages(null);
+    setPreviewUrls([]);
+  };
+
   const onSubmit = async (data: Business) => {
     const formData = new FormData();
     
     // Append basic info
     formData.append('name', data.name);
     formData.append('description', data.description);
-    formData.append('ownerId', business!.ownerId.toString());
+    const ownerId = business?.ownerId ?? data.ownerId;
+    if (ownerId != null) {
+      formData.append('ownerId', ownerId.toString());
+    }
     // formData.append('categoryIdsJson', JSON.stringify(data.categoryIds || []));
     // Append location
     const locationPayload = {
@@ -86,8 +105,28 @@ export default function Profile() {
     const socialMediaPayload = (data as any).socialMedia ?? business?.socialMedia ?? {};
     formData.append('socialMediaJson', JSON.stringify(socialMediaPayload));
 
+    if (newImages && newImages.length > 0) {
+      Array.from(newImages).forEach((file) => {
+        formData.append('images', file);
+      });
+    }
+
   updateMutation.mutate(formData);
   };
+
+  useEffect(() => {
+    if (!newImages || newImages.length === 0) {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+      setPreviewUrls([]);
+      return;
+    }
+    const urls = Array.from(newImages).map((file) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [newImages]);
 
   if (isLoading) {
     return (
@@ -115,6 +154,7 @@ export default function Profile() {
   }
 
   const location = business.location ?? emptyLocation;
+  const galleryImages = Array.from(new Set([...(business.images ?? []), ...((business as any).gallery ?? [])]));
 
   // Helper for opening hours rendering in edit mode
   const days: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'> = [
@@ -131,7 +171,7 @@ export default function Profile() {
               <p className="text-sm text-gray-500 mt-1">Update your company information and contact details.</p>
             </div>
             <button
-              onClick={() => { setIsEditing(false); reset(); }}
+              onClick={handleCancelEdit}
               className="text-gray-600 hover:text-gray-900"
             >
               Cancel
@@ -166,6 +206,57 @@ export default function Profile() {
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
                   />
                   {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Images</label>
+                  <div className="mt-2 space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Current</p>
+                      {Array.isArray(business.images) && business.images.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-3">
+                          {business.images.map((image) => (
+                            <div key={image} className="h-20 w-20 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                              <img
+                                src={`${API_URL_FILE}${image}`}
+                                alt="Business gallery"
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm text-gray-500">No images uploaded yet.</p>
+                      )}
+                    </div>
+                    {previewUrls.length > 0 && (
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">New Uploads</p>
+                        <div className="mt-2 flex flex-wrap gap-3">
+                          {previewUrls.map((url) => (
+                            <div key={url} className="h-20 w-20 overflow-hidden rounded-lg border border-blue-200 bg-blue-50">
+                              <img src={url} alt="New upload preview" className="h-full w-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <label className="inline-flex items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:border-blue-400 hover:text-blue-600 transition cursor-pointer">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Images
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={(event) => {
+                          setNewImages(event.target.files && event.target.files.length > 0 ? event.target.files : null);
+                        }}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500">Upload JPG or PNG files up to 5MB each.</p>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
@@ -226,7 +317,7 @@ export default function Profile() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                   <input
-                    {...register('location.state', { required: 'State is required' })}
+                    {...register('location.state')}
                     defaultValue={location.state}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
@@ -234,7 +325,7 @@ export default function Profile() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
                   <input
-                    {...register('location.postalCode', { required: 'Postal code is required' })}
+                    {...register('location.postalCode')}
                     defaultValue={location.postalCode}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
@@ -417,7 +508,7 @@ export default function Profile() {
             <div className="flex justify-end gap-3 pt-6">
               <button
                 type="button"
-                onClick={() => { setIsEditing(false); reset(); }}
+                onClick={handleCancelEdit}
                 className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancel
@@ -496,6 +587,33 @@ export default function Profile() {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Gallery */}
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Camera className="w-5 h-5 mr-2" />
+              Media Gallery
+            </h3>
+            {galleryImages.length > 0 ? (
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {galleryImages.map((image) => (
+                  <div key={image} className="group relative overflow-hidden rounded-xl border border-gray-100 shadow-sm">
+                    <img
+                      src={`${API_URL_FILE}${image}`}
+                      alt="Business gallery item"
+                      className="h-32 w-full object-cover transition duration-200 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent opacity-0 group-hover:opacity-100 transition" />
+                    <span className="absolute bottom-2 left-2 text-xs font-medium text-white/80 backdrop-blur-sm rounded px-2 py-1">
+                      Asset
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-gray-500">No images uploaded yet.</p>
+            )}
           </div>
 
           {/* Opening Hours */}

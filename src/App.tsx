@@ -22,7 +22,11 @@ const queryClient = new QueryClient();
 
 function App() {
   const { token, user } = useAuthStore();
-  const defaultProtectedPath = user?.role === 'BUSINESS_MARKET' ? '/dashboard' : '/business-selection';
+  const defaultProtectedPath = user?.role === 'BUSINESS_MARKET'
+    ? '/dashboard'
+    : user?.role === 'BUSINESS'
+      ? '/dashboard/profile'
+      : '/business-selection';
 
   return (
     <QueryClientProvider client={queryClient}>

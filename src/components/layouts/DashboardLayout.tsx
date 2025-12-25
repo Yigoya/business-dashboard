@@ -1,5 +1,5 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { useMemo } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useMemo, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Package, 
@@ -29,15 +29,25 @@ const navigation: NavItem[] = [
 
 export default function DashboardLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
   const filteredNavigation = useMemo(() => {
+    if (user?.role === 'BUSINESS') {
+      return navigation.filter((item) => item.path === '/dashboard/profile');
+    }
     if (user?.role !== 'BUSINESS_MARKET') {
       return navigation.filter((item) => item.path !== '/dashboard/products');
     }
     return navigation;
   }, [user?.role]);
+
+  useEffect(() => {
+    if (user?.role === 'BUSINESS' && location.pathname === '/dashboard') {
+      navigate('/dashboard/profile', { replace: true });
+    }
+  }, [location.pathname, navigate, user?.role]);
   
   return (
     <div className="min-h-screen bg-gray-50">
