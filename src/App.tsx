@@ -33,13 +33,13 @@ function App() {
       <Router>
         <Routes>
           {/* Public Routes */}
-          <Route path="/auth/login" element={<Login />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/verify-email" element={<VerifyEmail />} />
           <Route path="/auth/verify" element={<VerifyCallback />} />
           {/* Root Route */}
           <Route path="/" element={
-            token ? <Navigate to={defaultProtectedPath} replace /> : <Navigate to="/auth/login" replace />
+            token ? <Navigate to={defaultProtectedPath} replace /> : <Navigate to="/login" replace />
           } />
           
           {/* Protected Routes */}
@@ -63,7 +63,7 @@ function App() {
               <Route path="*" element={<Navigate to="/business-selection" replace />} />
             </>
           ) : (
-            <Route path="*" element={<Navigate to="/auth/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           )}
         </Routes>
         <Toaster position="top-right" />

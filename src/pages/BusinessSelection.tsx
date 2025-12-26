@@ -20,7 +20,7 @@ export default function BusinessSelection() {
 
   const handleLogout = () => {
     logout();
-    navigate('/auth/login');
+    navigate('/login');
   };
 
   useEffect(() => {

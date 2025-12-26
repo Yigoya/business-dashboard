@@ -65,7 +65,7 @@ export default function VerifyCallback() {
               Try logging in again or request a new link.
             </p>
             <div className="mt-6">
-              <Link to="/auth/login" className="text-blue-600 hover:text-blue-700 font-medium">Go to Login</Link>
+              <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">Go to Login</Link>
             </div>
           </>
         )}

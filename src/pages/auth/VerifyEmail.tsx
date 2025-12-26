@@ -69,7 +69,7 @@ export default function VerifyEmail() {
 
         <p className="mt-6 text-gray-600">
           Already verified?{' '}
-          <Link to="/auth/login" className="text-blue-600 hover:text-blue-700 font-medium">Sign in</Link>
+          <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">Sign in</Link>
         </p>
       </div>
     </div>

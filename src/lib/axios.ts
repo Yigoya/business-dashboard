@@ -26,7 +26,7 @@ const api = axios.create({
 //   (error) => {
 //     if (error.response?.status === 401 && !error.config?.skipAuthRedirect) {
 //       localStorage.removeItem('token');
-//       window.location.href = '/auth/login';
+//       window.location.href = '/login';
 //     }
 //     return Promise.reject(error);
 //   }
