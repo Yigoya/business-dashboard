@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
@@ -15,15 +15,18 @@ interface LoginForm {
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+  const [autoLoginMode, setAutoLoginMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { setAuth } = useAuthStore();
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<LoginForm>();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginForm>({
+    defaultValues: { email: '', password: '' },
+  });
 
-  const onSubmit = async (data: LoginForm) => {
+  const onSubmit = useCallback(async (data: LoginForm) => {
     try {
       setIsLoading(true);
-      const response = await api.post('/login', {
+      const response = await api.post('/auth/login', {
         ...data,
         FCMToken: "dKB-Qr1oRlKZmcpB5bM7Ng:APA91bEDkEgF_hC8y6NgIFWBQ-Tq6w5dSp3ALhleFaPRQ2MDV_cwmP-YVQU2NHZ5y38H76kZrXfhVBRuquK7JLK8XgViuhQvaSpb3UkalYLo-TzsvceQpvg",
         deviceType: "Web",
@@ -169,22 +172,36 @@ export default function Login() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate, setAuth]);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const emailParam = params.get('email');
+    const passwordParam = params.get('password');
+
+    if (!emailParam || !passwordParam) return;
+
+    setAutoLoginMode(true);
+
+    setValue('email', emailParam);
+    setValue('password', passwordParam);
+
     if (autoLoginAttempted) return;
 
-    const params = new URLSearchParams(location.search);
-    const email = params.get('email');
-    const password = params.get('password');
+    setAutoLoginAttempted(true);
+    onSubmit({ email: emailParam, password: passwordParam });
+  }, [location.search, setValue, autoLoginAttempted, onSubmit]);
 
-    if (email && password) {
-      setAutoLoginAttempted(true);
-      setValue('email', email);
-      setValue('password', password);
-      handleSubmit(onSubmit)();
-    }
-  }, [autoLoginAttempted, handleSubmit, location.search, onSubmit, setValue]);
+  if (autoLoginMode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3 text-gray-700">
+          <div className="h-12 w-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" aria-label="Signing you in" />
+          <p className="text-base font-medium">Signing you in...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
