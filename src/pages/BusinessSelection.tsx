@@ -76,7 +76,7 @@ export default function BusinessSelection() {
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header skeleton */}
-          <div className="h-32 rounded-2xl bg-gradient-to-r from-blue-100 to-indigo-100 animate-pulse" />
+          <div className="h-32 rounded-2xl bg-[#2a6c99] animate-pulse" />
           {/* Cards skeleton */}
           <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -97,7 +97,7 @@ export default function BusinessSelection() {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header banner */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-6 sm:p-8">
+        <div className="relative overflow-hidden rounded-2xl bg-[#2a6c99] p-6 sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="text-white">
               <h1 className="text-2xl sm:text-3xl font-bold">Welcome back</h1>

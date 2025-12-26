@@ -64,8 +64,8 @@ export interface OpeningHours {
 
 export interface SocialMedia {
   facebook: string | null;
-  twitter: string | null;
-  instagram: string | null;
+  telegram: string | null;
+  whatsapp: string | null;
   linkedin: string | null;
 }
 

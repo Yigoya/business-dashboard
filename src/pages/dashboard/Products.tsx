@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { Plus, Edit2, Trash2, Search, ChevronLeft, ChevronRight, ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ChevronLeft, ChevronRight, ImageIcon, ChevronDown, ChevronUp, X } from 'lucide-react';
 import api, { API_URL_FILE, getErrorMessage } from '../../lib/axios';
 import type { Product, ProductFilters } from '../../types';
 
@@ -233,6 +233,12 @@ export default function Products() {
     setIsModalOpen(true);
   };
 
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditing(null);
+    setShowAdvanced(false);
+  };
+
   const handleDelete = (id: number) => {
     if (confirm('Delete this product?')) deleteMutation.mutate(id);
   };
@@ -402,12 +408,17 @@ export default function Products() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full p-6">
+          <div className="bg-white rounded-xl max-w-4xl w-full p-6 md:p-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">{editing ? 'Edit Product' : 'Add Product'}</h3>
-              <button type="button" onClick={() => setShowAdvanced(v => !v)} className="inline-flex items-center px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-sm">
-                {showAdvanced ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />} Advanced
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setShowAdvanced(v => !v)} className="inline-flex items-center px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-sm">
+                  {showAdvanced ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />} Advanced
+                </button>
+                <button type="button" onClick={closeModal} aria-label="Close dialog" className="inline-flex items-center justify-center rounded-lg border p-2 hover:bg-gray-50">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-1">
@@ -586,7 +597,7 @@ export default function Products() {
               </div>
 
               <div className="col-span-2 flex justify-end gap-3 mt-2">
-                <button type="button" onClick={() => { setIsModalOpen(false); setEditing(null); }} className="px-4 py-2 rounded-lg border">Cancel</button>
+                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-lg border">Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
                   {editing ? 'Update' : 'Create'}
                 </button>

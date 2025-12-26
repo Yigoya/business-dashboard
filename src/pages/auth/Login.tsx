@@ -14,10 +14,11 @@ interface LoginForm {
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { setAuth } = useAuthStore();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<LoginForm>();
 
   const onSubmit = async (data: LoginForm) => {
     try {
@@ -169,6 +170,21 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (autoLoginAttempted) return;
+
+    const params = new URLSearchParams(location.search);
+    const email = params.get('email');
+    const password = params.get('password');
+
+    if (email && password) {
+      setAutoLoginAttempted(true);
+      setValue('email', email);
+      setValue('password', password);
+      handleSubmit(onSubmit)();
+    }
+  }, [autoLoginAttempted, handleSubmit, location.search, onSubmit, setValue]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
