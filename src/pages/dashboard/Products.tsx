@@ -233,12 +233,6 @@ export default function Products() {
     setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditing(null);
-    setShowAdvanced(false);
-  };
-
   const handleDelete = (id: number) => {
     if (confirm('Delete this product?')) deleteMutation.mutate(id);
   };
@@ -407,20 +401,31 @@ export default function Products() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full p-6 md:p-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">{editing ? 'Edit Product' : 'Add Product'}</h3>
-              <div className="flex items-center gap-2">
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center p-4 overflow-y-auto"
+          onClick={() => { setIsModalOpen(false); setEditing(null); }}
+        >
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-6 py-4 border-b bg-white">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-gray-900">{editing ? 'Edit Product' : 'Add Product'}</h3>
                 <button type="button" onClick={() => setShowAdvanced(v => !v)} className="inline-flex items-center px-3 py-1.5 rounded-lg border hover:bg-gray-50 text-sm">
                   {showAdvanced ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />} Advanced
                 </button>
-                <button type="button" onClick={closeModal} aria-label="Close dialog" className="inline-flex items-center justify-center rounded-lg border p-2 hover:bg-gray-50">
-                  <X className="w-4 h-4" />
-                </button>
               </div>
+              <button
+                type="button"
+                onClick={() => { setIsModalOpen(false); setEditing(null); }}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="col-span-1">
                 <label className="block text-sm font-medium mb-1">Name</label>
                 <input {...register('name', { required: 'Name is required' })} className="w-full border rounded-lg px-3 py-2" />
@@ -596,8 +601,8 @@ export default function Products() {
                 )}
               </div>
 
-              <div className="col-span-2 flex justify-end gap-3 mt-2">
-                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-lg border">Cancel</button>
+              <div className="col-span-2 sticky bottom-0 bg-white pt-4 pb-2 border-t flex justify-end gap-3">
+                <button type="button" onClick={() => { setIsModalOpen(false); setEditing(null); }} className="px-4 py-2 rounded-lg border">Cancel</button>
                 <button type="submit" className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
                   {editing ? 'Update' : 'Create'}
                 </button>
