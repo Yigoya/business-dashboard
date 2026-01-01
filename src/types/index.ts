@@ -15,6 +15,8 @@ export interface Business {
   description: string;
   ownerId: number;
   categoryIds: number[];
+  serviceIds?: number[];
+  serviceIdsJson?: string;
   location: Location | null;
   phoneNumber: string;
   email: string;

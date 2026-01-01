@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
@@ -13,10 +13,13 @@ import {
   Facebook,
   Send,
   MessageCircle,
-  Linkedin
+  Linkedin,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import api, { API_URL_FILE, getErrorMessage } from '../../lib/axios';
 import { Business, Location } from '../../types';
+import useAuthStore from '../../store/authStore';
 
 const emptyLocation: Location = {
   street: '',
@@ -30,14 +33,29 @@ const emptyLocation: Location = {
   coordinates: null,
 };
 
+type AdminServiceNode = {
+  serviceId: number;
+  name: string;
+  services?: AdminServiceNode[];
+};
+
+type AdminServiceCategory = {
+  categoryId: number;
+  categoryName: string;
+  services?: AdminServiceNode[];
+};
+
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [newImages, setNewImages] = useState<FileList | null>(null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
+  const [expandedServiceIds, setExpandedServiceIds] = useState<number[]>([]);
   const queryClient = useQueryClient();
+  const token = useAuthStore((state) => state.token);
   const selectedBusinessId = localStorage.getItem('selectedBusinessId');
 
-  const { register, handleSubmit, reset, formState: { errors }, setValue, getValues } = useForm<Business>();
+  const { register, handleSubmit, reset, formState: { errors }, setValue, getValues } = useForm<Business & { serviceIds?: number[] }>();
 
   const { data: business, isLoading } = useQuery({
     queryKey: ['business', selectedBusinessId],
@@ -46,6 +64,58 @@ export default function Profile() {
       return response.data.business as Business;
     },
   });
+
+  useEffect(() => {
+    if (!business) return;
+    const anyBusiness = business as any;
+    let nextIds: number[] = [];
+    if (Array.isArray(anyBusiness.serviceIds)) {
+      nextIds = anyBusiness.serviceIds;
+    }
+    if (nextIds.length === 0 && typeof anyBusiness.serviceIdsJson === 'string') {
+      try {
+        const parsed = JSON.parse(anyBusiness.serviceIdsJson);
+        if (Array.isArray(parsed)) nextIds = parsed.filter((id: unknown) => typeof id === 'number');
+      } catch (error) {
+        console.warn('Unable to parse serviceIdsJson', error);
+      }
+    }
+    if (nextIds.length === 0 && Array.isArray(business.categoryIds)) {
+      nextIds = business.categoryIds;
+    }
+    setSelectedServiceIds(nextIds);
+    setValue('serviceIds' as any, nextIds, { shouldDirty: false, shouldValidate: false });
+  }, [business, setValue]);
+
+  const { data: adminServices, isLoading: isLoadingServices } = useQuery({
+    queryKey: ['admin-services'],
+    queryFn: async () => {
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await api.get('/admin/services', { headers });
+      return response.data as AdminServiceCategory[];
+    },
+  });
+
+  const yellowPageTree = useMemo<AdminServiceNode[]>(() => {
+    const categories = Array.isArray(adminServices) ? adminServices : [];
+    const yellowPage = categories.find((category) => category.categoryId === 2);
+    const clone = (nodes?: AdminServiceNode[]): AdminServiceNode[] =>
+      (nodes ?? []).map((node) => ({ ...node, services: clone(node.services) }));
+    return yellowPage ? clone(yellowPage.services) : [];
+  }, [adminServices]);
+
+  const serviceNameMap = useMemo(() => {
+    const map = new Map<number, string>();
+    const walk = (nodes?: AdminServiceNode[]) => {
+      (nodes ?? []).forEach((node) => {
+        map.set(node.serviceId, node.name);
+        walk(node.services);
+      });
+    };
+    walk(yellowPageTree);
+    return map;
+  }, [yellowPageTree]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -68,6 +138,69 @@ export default function Profile() {
     },
   });
 
+  const toggleServiceSelection = (serviceId: number) => {
+    setSelectedServiceIds((prev) => {
+      const exists = prev.includes(serviceId);
+      const next = exists ? prev.filter((id) => id !== serviceId) : [...prev, serviceId];
+      setValue('serviceIds' as any, next, { shouldDirty: true, shouldValidate: false });
+      return next;
+    });
+  };
+
+  const toggleNodeExpansion = (serviceId: number) => {
+    setExpandedServiceIds((prev) => (
+      prev.includes(serviceId)
+        ? prev.filter((id) => id !== serviceId)
+        : [...prev, serviceId]
+    ));
+  };
+
+  const renderServiceTree = (nodes: AdminServiceNode[], depth = 0): JSX.Element[] => {
+    return nodes.map((node) => {
+      const hasChildren = Array.isArray(node.services) && node.services.length > 0;
+      const isExpanded = expandedServiceIds.includes(node.serviceId);
+      const isChecked = selectedServiceIds.includes(node.serviceId);
+
+      return (
+        <div key={node.serviceId} className={`mt-2 ${depth > 0 ? 'ml-4' : ''}`}>
+          <div className="flex items-start gap-2">
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={() => toggleNodeExpansion(node.serviceId)}
+                className="mt-1 rounded text-gray-500 transition hover:text-blue-600"
+                aria-label={isExpanded ? 'Collapse category' : 'Expand category'}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            ) : (
+              <span className="mt-1 inline-flex h-4 w-4" />
+            )}
+
+            <label className="flex flex-1 items-center gap-3">
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={() => toggleServiceSelection(node.serviceId)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">{node.name}</span>
+            </label>
+          </div>
+          {hasChildren && isExpanded && (
+            <div className="ml-6 border-l border-gray-200 pl-4">
+              {renderServiceTree(node.services ?? [], depth + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
+
   const handleCancelEdit = () => {
     setIsEditing(false);
     reset();
@@ -85,6 +218,8 @@ export default function Profile() {
     if (ownerId != null) {
       formData.append('ownerId', ownerId.toString());
     }
+    const servicesPayload = (data as any).serviceIds ?? selectedServiceIds ?? [];
+    formData.append('serviceIdsJson', JSON.stringify(servicesPayload));
     // formData.append('categoryIdsJson', JSON.stringify(data.categoryIds || []));
     // Append location
     const locationPayload = {
@@ -286,6 +421,35 @@ export default function Profile() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Categories (Yellow Page) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Categories</h3>
+
+                </div>
+                <span className="text-xs text-gray-500">{selectedServiceIds.length} selected</span>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 max-h-72 overflow-auto">
+                {isLoadingServices ? (
+                  <p className="text-sm text-gray-500">Loading services...</p>
+                ) : yellowPageTree.length === 0 ? (
+                  <p className="text-sm text-gray-500">No services found for Yellow Page.</p>
+                ) : (
+                  renderServiceTree(yellowPageTree)
+                )}
+              </div>
+              {selectedServiceIds.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedServiceIds.map((id) => (
+                    <span key={id} className="px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">
+                      {serviceNameMap.get(id) ?? `ID ${id}`}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Location */}

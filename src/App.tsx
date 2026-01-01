@@ -5,6 +5,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyEmail from './pages/auth/VerifyEmail';
 import VerifyCallback from './pages/auth/VerifyCallback';
+import TokenLogin from './pages/auth/TokenLogin';
 import BusinessSelection from './pages/BusinessSelection';
 import DashboardLayout from './components/layouts/DashboardLayout';
 import Overview from './pages/dashboard/Overview';
@@ -34,6 +35,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/token-login" element={<TokenLogin />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/verify-email" element={<VerifyEmail />} />
           <Route path="/auth/verify" element={<VerifyCallback />} />
