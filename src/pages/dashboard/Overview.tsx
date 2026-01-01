@@ -99,7 +99,7 @@ export default function Overview() {
   return (
     <div className="space-y-6">
       {/* Header banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-6 sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl bg-[#2b78ac] p-6 sm:p-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="text-white">
             <h2 className="text-2xl sm:text-3xl font-bold">Overview</h2>
