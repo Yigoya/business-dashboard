@@ -35,7 +35,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/auth/token-login" element={<TokenLogin />} />
+          <Route path="/token-login" element={<TokenLogin />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/verify-email" element={<VerifyEmail />} />
           <Route path="/auth/verify" element={<VerifyCallback />} />
