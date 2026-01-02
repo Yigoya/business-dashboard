@@ -20,16 +20,11 @@ export default function TokenLogin() {
       navigate('/login', { replace: true });
       return;
     }
-
     const signIn = async () => {
       try {
         setIsLoading(true);
-        const response = await api.post('/auth/token-login', {
-          token: tokenParam,
-          FCMToken: 'dKB-Qr1oRlKZmcpB5bM7Ng:APA91bEDkEgF_hC8y6NgIFWBQ-Tq6w5dSp3ALhleFaPRQ2MDV_cwmP-YVQU2NHZ5y38H76kZrXfhVBRuquK7JLK8XgViuhQvaSpb3UkalYLo-TzsvceQpvg',
-          deviceType: 'Web',
-          deviceModel: 'Browser',
-          operatingSystem: 'WEB',
+        const response = await api.get('/auth/token-login', {
+          params: { token: tokenParam },
         });
 
         const user = response.data.user;
