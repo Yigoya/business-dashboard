@@ -12,6 +12,7 @@ interface ProductFormData {
   description: string;
   price: number;
   currency: string;
+  condition: 'NEW' | 'USED';
   stockQuantity: number;
   minOrderQuantity: number;
   sku: string;
@@ -74,6 +75,7 @@ export default function Products() {
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProductFormData>({
     defaultValues: {
       currency: 'ETB',
+      condition: 'NEW',
       isActive: true,
       serviceIds: [],
       specifications: '',
@@ -179,6 +181,7 @@ export default function Products() {
     fd.append('description', data.description);
     fd.append('price', String(data.price));
     fd.append('currency', data.currency);
+    fd.append('condition', data.condition);
     fd.append('stockQuantity', String(data.stockQuantity));
     fd.append('minOrderQuantity', String(data.minOrderQuantity));
     // Category is derived from admin categoryId 6 -> "Market"
@@ -200,7 +203,7 @@ export default function Products() {
   const startCreate = () => {
     setEditing(null);
     reset({
-      name: '', description: '', price: 0, currency: 'ETB', stockQuantity: 0, minOrderQuantity: 1,
+      name: '', description: '', price: 0, currency: 'ETB', condition: 'NEW', stockQuantity: 0, minOrderQuantity: 1,
       sku: '', isActive: true, specifications: '', serviceIds: [], images: undefined as any,
     });
     setNewImages([]);
@@ -220,6 +223,7 @@ export default function Products() {
       description: p.description,
       price: p.price,
       currency: p.currency ?? 'ETB',
+      condition: (p as any).condition ?? 'NEW',
       stockQuantity: p.stockQuantity,
       minOrderQuantity: p.minOrderQuantity,
       sku: p.sku,
@@ -455,6 +459,16 @@ export default function Products() {
                   <option value="KES">KES (Shilling)</option>
                   <option value="NGN">NGN (Naira)</option>
                   <option value="CNY">CNY (¥)</option>
+                </select>
+              </div>
+              <div className="col-span-1">
+                <label className="block text-sm font-medium mb-1">Condition</label>
+                <select
+                  {...register('condition', { required: 'Condition is required' })}
+                  className="w-full border rounded-lg px-3 py-2 bg-white"
+                >
+                  <option value="NEW">New</option>
+                  <option value="USED">Used</option>
                 </select>
               </div>
               {showAdvanced && (

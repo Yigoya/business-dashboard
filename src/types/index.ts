@@ -286,6 +286,7 @@ export interface Product {
   description: string;
   price: number;
   currency: string;
+  condition?: 'NEW' | 'USED';
   stockQuantity: number;
   minOrderQuantity: number;
   category: string;
