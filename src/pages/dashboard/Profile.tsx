@@ -18,7 +18,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import api, { API_URL_FILE, getErrorMessage } from '../../lib/axios';
-import { Business, Location } from '../../types';
+import { Business, BusinessType, Location } from '../../types';
 import useAuthStore from '../../store/authStore';
 
 const emptyLocation: Location = {
@@ -27,10 +27,22 @@ const emptyLocation: Location = {
   state: '',
   postalCode: '',
   country: '',
+  kebele: '',
   name: '',
   type: null,
   parentLocationId: null,
   coordinates: null,
+};
+
+const BUSINESS_TYPES: BusinessType[] = ['B2B', 'SERVICE', 'RETAIL', 'MANUFACTURER', 'SUPPLIER', 'DISTRIBUTOR', 'SERVICE_PROVIDER', 'WHOLESALER', 'OTHER'];
+
+const parseSecondaryCategories = (value?: string | string[]): string[] => {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 };
 
 type AdminServiceNode = {
@@ -213,7 +225,34 @@ export default function Profile() {
     
     // Append basic info
     formData.append('name', data.name);
+    if (data.nameAmharic) {
+      formData.append('nameAmharic', data.nameAmharic);
+    }
     formData.append('description', data.description);
+    formData.append('businessType', (data.businessType as string) || 'OTHER');
+    if (data.foundedYear !== undefined && data.foundedYear !== null && !Number.isNaN(data.foundedYear)) {
+      formData.append('foundedYear', String(data.foundedYear));
+    }
+    if (data.employeeCount !== undefined && data.employeeCount !== null && !Number.isNaN(data.employeeCount)) {
+      formData.append('employeeCount', String(data.employeeCount));
+    }
+    if (data.registrationNumber) {
+      formData.append('registrationNumber', data.registrationNumber);
+    }
+    if (data.taxId) {
+      formData.append('taxId', data.taxId);
+    }
+    if (data.legalRepresentativeName) {
+      formData.append('legalRepresentativeName', data.legalRepresentativeName);
+    }
+    if (data.primaryCategory) {
+      formData.append('primaryCategory', data.primaryCategory);
+    }
+    const secondaryCategories = parseSecondaryCategories((data as any).secondaryCategories ?? (data as any).secondaryCategoriesInput);
+    formData.append('secondaryCategories', JSON.stringify(secondaryCategories));
+    formData.append('localDistributionNetwork', String(Boolean(data.localDistributionNetwork)));
+    formData.append('isVerified', String(Boolean(data.isVerified)));
+    formData.append('isFeatured', String(Boolean(data.isFeatured)));
     const ownerId = business?.ownerId ?? data.ownerId;
     if (ownerId != null) {
       formData.append('ownerId', ownerId.toString());
@@ -231,6 +270,9 @@ export default function Profile() {
     
     // Append contact info
     formData.append('phoneNumber', data.phoneNumber);
+    if (data.alternativeContactPhone) {
+      formData.append('alternativeContactPhone', data.alternativeContactPhone);
+    }
     formData.append('email', data.email);
     formData.append('website', data.website || '');
     
@@ -333,6 +375,14 @@ export default function Profile() {
                   {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>}
                 </div>
                 <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Name (Amharic)</label>
+                  <input
+                    {...register('nameAmharic')}
+                    defaultValue={business.nameAmharic ?? ''}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <textarea
                     {...register('description', { required: 'Description is required' })}
@@ -341,6 +391,105 @@ export default function Profile() {
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none"
                   />
                   {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+                  <select
+                    {...register('businessType', { required: 'Business type is required' })}
+                    defaultValue={business.businessType ?? 'OTHER'}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  >
+                    {BUSINESS_TYPES.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  {errors.businessType && <p className="mt-1 text-sm text-red-600">{errors.businessType.message as string}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary Category</label>
+                  <input
+                    {...register('primaryCategory')}
+                    defaultValue={business.primaryCategory ?? ''}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Founded Year</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    {...register('foundedYear', { valueAsNumber: true })}
+                    defaultValue={business.foundedYear ?? ''}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Employee Count</label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    {...register('employeeCount', { valueAsNumber: true })}
+                    defaultValue={business.employeeCount ?? ''}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
+                  <input
+                    {...register('registrationNumber')}
+                    defaultValue={business.registrationNumber ?? ''}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tax ID <span className="text-red-500">*</span></label>
+                  <input
+                    {...register('taxId', { required: 'Tax ID is required' })}
+                    defaultValue={business.taxId ?? ''}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                  {errors.taxId && <p className="mt-1 text-sm text-red-600">{errors.taxId.message}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Legal Representative</label>
+                  <input
+                    {...register('legalRepresentativeName')}
+                    defaultValue={business.legalRepresentativeName ?? ''}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Categories</label>
+                  <input
+                    {...register('secondaryCategories' as any)}
+                    defaultValue={(business.secondaryCategories ?? []).join(', ')}
+                    placeholder="Textiles, Packaging"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Separate multiple categories with commas.</p>
+                </div>
+
+                <div className="sm:col-span-2 flex flex-wrap gap-4">
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" {...register('localDistributionNetwork')} defaultChecked={business.localDistributionNetwork ?? false} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    Local distribution network
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" {...register('isVerified')} defaultChecked={business.isVerified} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    Verified business
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" {...register('isFeatured')} defaultChecked={business.isFeatured} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    Featured listing
+                  </label>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Business Images</label>
@@ -398,6 +547,14 @@ export default function Profile() {
                   <input
                     {...register('phoneNumber', { required: 'Phone number is required' })}
                     defaultValue={business.phoneNumber}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alternative Contact</label>
+                  <input
+                    {...register('alternativeContactPhone')}
+                    defaultValue={business.alternativeContactPhone ?? ''}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
                 </div>
@@ -491,6 +648,22 @@ export default function Profile() {
                   <input
                     {...register('location.postalCode')}
                     defaultValue={location.postalCode}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <input
+                    {...register('location.country')}
+                    defaultValue={location.country}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kebele (optional)</label>
+                  <input
+                    {...register('location.kebele')}
+                    defaultValue={location.kebele ?? ''}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
                 </div>
@@ -734,15 +907,75 @@ export default function Profile() {
                 <h4 className="text-sm font-medium text-gray-500">Business Name</h4>
                 <p className="mt-1 text-base text-gray-900">{business.name}</p>
               </div>
+              {business.nameAmharic && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Business Name (Amharic)</h4>
+                  <p className="mt-1 text-base text-gray-900">{business.nameAmharic}</p>
+                </div>
+              )}
+              {business.businessType && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Business Type</h4>
+                  <p className="mt-1 text-base text-gray-900">{business.businessType}</p>
+                </div>
+              )}
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Description</h4>
                 <p className="mt-1 text-base text-gray-900">{business.description}</p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {business.foundedYear && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500">Founded Year</h4>
+                    <p className="mt-1 text-base text-gray-900">{business.foundedYear}</p>
+                  </div>
+                )}
+                {business.employeeCount !== null && business.employeeCount !== undefined && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500">Employees</h4>
+                    <p className="mt-1 text-base text-gray-900">{business.employeeCount}</p>
+                  </div>
+                )}
+                {business.registrationNumber && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500">Registration Number</h4>
+                    <p className="mt-1 text-base text-gray-900">{business.registrationNumber}</p>
+                  </div>
+                )}
+                {business.taxId && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500">Tax ID</h4>
+                    <p className="mt-1 text-base text-gray-900">{business.taxId}</p>
+                  </div>
+                )}
+                {business.legalRepresentativeName && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500">Legal Representative</h4>
+                    <p className="mt-1 text-base text-gray-900">{business.legalRepresentativeName}</p>
+                  </div>
+                )}
+                {business.primaryCategory && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500">Primary Category</h4>
+                    <p className="mt-1 text-base text-gray-900">{business.primaryCategory}</p>
+                  </div>
+                )}
+                {Array.isArray(business.secondaryCategories) && business.secondaryCategories.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <h4 className="text-sm font-medium text-gray-500">Secondary Categories</h4>
+                    <p className="mt-1 text-base text-gray-900">{business.secondaryCategories.join(', ')}</p>
+                  </div>
+                )}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Local Distribution Network</h4>
+                  <p className="mt-1 text-base text-gray-900">{business.localDistributionNetwork ? 'Yes' : 'No'}</p>
+                </div>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Location</h4>
                 <p className="mt-1 text-base text-gray-900">
                   {location.street || 'Street not set'}<br />
-                  {[location.city, location.state].filter(Boolean).join(', ') || 'City/State not set'} {location.postalCode || ''}<br />
+                  {[location.kebele ? `Kebele ${location.kebele}` : null, location.city, location.state].filter(Boolean).join(', ') || 'City/State not set'} {location.postalCode || ''}<br />
                   {location.country || 'Country not set'}
                 </p>
               </div>
@@ -827,6 +1060,15 @@ export default function Profile() {
                 </div>
                 <a className="text-xs text-blue-600 hover:underline" href={`tel:${business.phoneNumber}`}>Call</a>
               </div>
+              {business.alternativeContactPhone && (
+                <div className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
+                  <div className="flex items-center">
+                    <Phone className="w-4 h-4 text-gray-400 mr-2" />
+                    <span className="text-sm text-gray-900">{business.alternativeContactPhone}</span>
+                  </div>
+                  <a className="text-xs text-blue-600 hover:underline" href={`tel:${business.alternativeContactPhone}`}>Call</a>
+                </div>
+              )}
               <div className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
                 <div className="flex items-center">
                   <Mail className="w-4 h-4 text-gray-400 mr-2" />

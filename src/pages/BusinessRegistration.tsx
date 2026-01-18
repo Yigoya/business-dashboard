@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { Building2, MapPin, Clock, Globe, Camera, ChevronRight, ChevronDown } from 'lucide-react';
 import api from '../lib/axios';
 import useAuthStore  from '../store/authStore';
+import { BusinessType } from '../types';
 
 interface ServiceNode {
   serviceId: number;
@@ -20,7 +21,19 @@ interface ServiceCategoryResponse {
 
 interface BusinessForm {
   name: string;
+  nameAmharic?: string;
+  businessType: BusinessType;
   description: string;
+  foundedYear?: number;
+  employeeCount?: number;
+  registrationNumber?: string;
+  taxId: string;
+  legalRepresentativeName?: string;
+  primaryCategory?: string;
+  secondaryCategoriesInput?: string;
+  localDistributionNetwork: boolean;
+  isVerified: boolean;
+  isFeatured: boolean;
   categoryIds: number[];
   location: {
     name: string;
@@ -29,8 +42,12 @@ interface BusinessForm {
     street: string;
     city: string;
     country: string;
+    state?: string;
+    postalCode?: string;
+    kebele?: string;
   };
   phoneNumber: string;
+  alternativeContactPhone?: string;
   email: string;
   website: string;
   openingHours: {
@@ -59,6 +76,7 @@ interface BusinessForm {
 }
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const BUSINESS_TYPES: BusinessType[] = ['B2B', 'SERVICE', 'RETAIL', 'MANUFACTURER', 'SUPPLIER', 'DISTRIBUTOR', 'SERVICE_PROVIDER', 'WHOLESALER', 'OTHER'];
 const PRIMARY_COLOR = '#2b78ac';
 const PRIMARY_HOVER = '#256b9c';
 const PHONE_PREFIX = '+251';
@@ -91,6 +109,14 @@ const baseInputClass = 'mt-2 block w-full rounded-lg border bg-gray-50 px-3 py-2
 const errorRingClass = 'border-red-400 focus:ring-red-300 focus:border-red-400';
 const primaryRingClass = 'border-gray-200 focus:ring-[#2b78ac] focus:border-[#2b78ac]';
 
+const parseSecondaryCategories = (value?: string): string[] => {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
 export default function BusinessRegistration() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +135,11 @@ export default function BusinessRegistration() {
       openingHours: DEFAULT_OPENING_HOURS,
       socialMedia: DEFAULT_SOCIAL_MEDIA,
       phoneNumber: PHONE_PREFIX,
+      businessType: 'OTHER',
+      secondaryCategoriesInput: '',
+      localDistributionNetwork: false,
+      isVerified: false,
+      isFeatured: false,
     },
   });
 
@@ -234,10 +265,34 @@ export default function BusinessRegistration() {
     try {
       setIsLoading(true);
       const formData = new FormData();
-      console.log(data)
+      const secondaryCategories = parseSecondaryCategories(data.secondaryCategoriesInput);
       // Append basic info
       formData.append('name', data.name);
+      if (data.nameAmharic) {
+        formData.append('nameAmharic', data.nameAmharic);
+      }
       formData.append('description', data.description);
+      formData.append('businessType', data.businessType || 'OTHER');
+      if (!Number.isNaN(data.foundedYear) && data.foundedYear) {
+        formData.append('foundedYear', String(data.foundedYear));
+      }
+      if (!Number.isNaN(data.employeeCount) && data.employeeCount !== undefined && data.employeeCount !== null) {
+        formData.append('employeeCount', String(data.employeeCount));
+      }
+      if (data.registrationNumber) {
+        formData.append('registrationNumber', data.registrationNumber);
+      }
+      formData.append('taxId', data.taxId);
+      if (data.legalRepresentativeName) {
+        formData.append('legalRepresentativeName', data.legalRepresentativeName);
+      }
+      if (data.primaryCategory) {
+        formData.append('primaryCategory', data.primaryCategory);
+      }
+      formData.append('secondaryCategories', JSON.stringify(secondaryCategories));
+      formData.append('localDistributionNetwork', String(Boolean(data.localDistributionNetwork)));
+      formData.append('isVerified', String(Boolean(data.isVerified)));
+      formData.append('isFeatured', String(Boolean(data.isFeatured)));
       formData.append('ownerId', user?.id.toString() || '');
       formData.append('serviceIdsJson', JSON.stringify(data.categoryIds || []));
       
@@ -246,6 +301,9 @@ export default function BusinessRegistration() {
       
       // Append contact info
       formData.append('phoneNumber', data.phoneNumber);
+      if (data.alternativeContactPhone) {
+        formData.append('alternativeContactPhone', data.alternativeContactPhone);
+      }
       formData.append('email', data.email);
       formData.append('website', data.website);
       
@@ -394,21 +452,37 @@ export default function BusinessRegistration() {
                 <p className="mt-1 text-sm text-gray-500">Tell customers what makes your business unique.</p>
               </header>
               <div className="mt-4 space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700" htmlFor="business-name">
-                    Business Name
-                  </label>
-                  <input
-                    id="business-name"
-                    {...register('name', { required: 'Business name is required' })}
-                    type="text"
-                    placeholder="e.g. Horizon Creative Studio"
-                    className={buildControlClass(Boolean(errors.name))}
-                  />
-                  {errors.name && (
-                    <p className="mt-2 text-sm text-red-600">{errors.name.message}</p>
-                  )}
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="business-name">
+                      Business Name
+                    </label>
+                    <input
+                      id="business-name"
+                      {...register('name', { required: 'Business name is required' })}
+                      type="text"
+                      placeholder="e.g. Horizon Creative Studio"
+                      className={buildControlClass(Boolean(errors.name))}
+                    />
+                    {errors.name && (
+                      <p className="mt-2 text-sm text-red-600">{errors.name.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="business-name-amharic">
+                      Business Name (Amharic)
+                    </label>
+                    <input
+                      id="business-name-amharic"
+                      {...register('nameAmharic')}
+                      type="text"
+                      placeholder="አክሜ"
+                      className={buildControlClass(Boolean(errors.nameAmharic))}
+                    />
+                  </div>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700" htmlFor="business-description">
                     Description
@@ -419,6 +493,142 @@ export default function BusinessRegistration() {
                     placeholder="Briefly describe your services, specialties, or mission."
                     className={buildControlClass(false, 'min-h-[120px] resize-y leading-relaxed')}
                   />
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="business-type">
+                      Business Type
+                    </label>
+                    <select
+                      id="business-type"
+                      {...register('businessType', { required: 'Business type is required' })}
+                      className={buildControlClass(Boolean(errors.businessType))}
+                    >
+                      {BUSINESS_TYPES.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                    {errors.businessType && (
+                      <p className="mt-2 text-sm text-red-600">{errors.businessType.message as string}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="primary-category">
+                      Primary Category
+                    </label>
+                    <input
+                      id="primary-category"
+                      {...register('primaryCategory')}
+                      type="text"
+                      placeholder="e.g. Manufacturing"
+                      className={buildControlClass(Boolean(errors.primaryCategory))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="founded-year">
+                      Founded Year
+                    </label>
+                    <input
+                      id="founded-year"
+                      {...register('foundedYear', { valueAsNumber: true })}
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="2010"
+                      className={buildControlClass(Boolean(errors.foundedYear))}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="employee-count">
+                      Employee Count
+                    </label>
+                    <input
+                      id="employee-count"
+                      {...register('employeeCount', { valueAsNumber: true })}
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="42"
+                      className={buildControlClass(Boolean(errors.employeeCount))}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="registration-number">
+                      Registration Number
+                    </label>
+                    <input
+                      id="registration-number"
+                      {...register('registrationNumber')}
+                      type="text"
+                      placeholder="REG-123"
+                      className={buildControlClass(Boolean(errors.registrationNumber))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="tax-id">
+                      Tax ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="tax-id"
+                      {...register('taxId', { required: 'Tax ID is required' })}
+                      type="text"
+                      placeholder="TIN-999"
+                      className={buildControlClass(Boolean(errors.taxId))}
+                    />
+                    {errors.taxId && (
+                      <p className="mt-2 text-sm text-red-600">{errors.taxId.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="legal-representative">
+                      Legal Representative
+                    </label>
+                    <input
+                      id="legal-representative"
+                      {...register('legalRepresentativeName')}
+                      type="text"
+                      placeholder="John Doe"
+                      className={buildControlClass(Boolean(errors.legalRepresentativeName))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700" htmlFor="secondary-categories">
+                    Secondary Categories
+                  </label>
+                  <input
+                    id="secondary-categories"
+                    {...register('secondaryCategoriesInput')}
+                    type="text"
+                    placeholder="Textiles, Packaging"
+                    className={buildControlClass(Boolean(errors.secondaryCategoriesInput))}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Separate multiple categories with commas.</p>
+                </div>
+
+                <div className="flex flex-wrap gap-4">
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" {...register('localDistributionNetwork')} className="h-4 w-4 rounded border-gray-300 text-[#2b78ac] focus:ring-[#2b78ac]" />
+                    Local distribution network
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" {...register('isVerified')} className="h-4 w-4 rounded border-gray-300 text-[#2b78ac] focus:ring-[#2b78ac]" />
+                    Verified business
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" {...register('isFeatured')} className="h-4 w-4 rounded border-gray-300 text-[#2b78ac] focus:ring-[#2b78ac]" />
+                    Featured listing
+                  </label>
                 </div>
               </div>
             </section>
@@ -483,6 +693,32 @@ export default function BusinessRegistration() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-gray-700" htmlFor="state">
+                  State/Region
+                </label>
+                <input
+                  id="state"
+                  {...register('location.state')}
+                  type="text"
+                  placeholder="Addis Ababa"
+                  className={buildControlClass(Boolean(errors.location?.state))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700" htmlFor="postal-code">
+                  Postal Code
+                </label>
+                <input
+                  id="postal-code"
+                  {...register('location.postalCode')}
+                  type="text"
+                  placeholder="1000"
+                  className={buildControlClass(Boolean(errors.location?.postalCode))}
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700" htmlFor="country">
                   Country
                 </label>
@@ -492,6 +728,19 @@ export default function BusinessRegistration() {
                   type="text"
                   placeholder="Ghana"
                   className={buildControlClass(Boolean(errors.location?.country))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700" htmlFor="kebele">
+                  Kebele (optional)
+                </label>
+                <input
+                  id="kebele"
+                  {...register('location.kebele')}
+                  type="text"
+                  placeholder="05"
+                  className={buildControlClass(Boolean(errors.location?.kebele))}
                 />
               </div>
 
@@ -653,6 +902,19 @@ export default function BusinessRegistration() {
                   {errors.phoneNumber && (
                     <p className="mt-2 text-sm text-red-600">{errors.phoneNumber.message}</p>
                   )}
+                </div>
+
+                <div className="sm:col-span-1">
+                  <label className="block text-sm font-medium text-gray-700" htmlFor="alt-phone-number">
+                    Alternative Contact (optional)
+                  </label>
+                  <input
+                    id="alt-phone-number"
+                    {...register('alternativeContactPhone')}
+                    type="tel"
+                    placeholder="011..."
+                    className={buildControlClass(Boolean(errors.alternativeContactPhone))}
+                  />
                 </div>
 
                 <div className="sm:col-span-1">

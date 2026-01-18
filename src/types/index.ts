@@ -9,11 +9,33 @@ export interface User {
   language: string;
 }
 
+export type BusinessType =
+  | 'B2B'
+  | 'SERVICE'
+  | 'RETAIL'
+  | 'MANUFACTURER'
+  | 'SUPPLIER'
+  | 'DISTRIBUTOR'
+  | 'SERVICE_PROVIDER'
+  | 'WHOLESALER'
+  | 'OTHER';
+
 export interface Business {
   id: number;
   name: string;
+  nameAmharic?: string | null;
+  businessType?: BusinessType | null;
   description: string;
   ownerId: number;
+  foundedYear?: number | null;
+  employeeCount?: number | null;
+  registrationNumber?: string | null;
+  taxId?: string | null;
+  legalRepresentativeName?: string | null;
+  primaryCategory?: string | null;
+  secondaryCategories?: string[];
+  localDistributionNetwork?: boolean;
+  alternativeContactPhone?: string | null;
   categoryIds: number[];
   serviceIds?: number[];
   serviceIdsJson?: string;
@@ -36,6 +58,7 @@ export interface Location {
   state: string;
   postalCode: string;
   country: string;
+  kebele?: string;
   name: string;
   type: string | null;
   parentLocationId: number | null;
